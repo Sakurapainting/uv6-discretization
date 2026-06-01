@@ -9,6 +9,15 @@
 *.bin
 *.img
 *.iso
+*.exe
+*.sym
+*.asm
+
+# === UNIX V6++ generated outputs ===
+UNIX V6++V1/oos/targets/
+UNIX V6++V1/oos/src/program/objs/
+UNIX V6++V1/oos/src/shell/OBJS/
+UNIX V6++V1/oos/tools/v6pp-fs-edit-2022/workspace/
 
 # === Eclipse CDT ===
 .csettings/

@@ -1,0 +1,55 @@
+# === Build artifacts ===
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.out
+*.bin
+*.img
+*.iso
+
+# === Eclipse CDT ===
+.csettings/
+.project
+.cproject
+.settings/
+
+# === VS Code ===
+.vscode/
+
+# === SVN metadata ===
+.svn/
+
+# === Logs and temp ===
+*.log
+*.tmp
+*.swp
+*~
+*.orig
+*.bak
+config.status
+config.h
+
+# === OS generated files ===
+Thumbs.db
+.DS_Store
+Desktop.ini
+ehthumbs.db
+
+# === Pre-built third-party tools & IDE ===
+eclipse-cpp-indigo-SR2-incubation-win32-x86_64/
+MinGW/
+NASM/
+jdk-7u51-windows-x64.exe
+
+# === Documents and references ===
+*.pdf
+*.doc
+*.docx
+
+# === Misc IDE ===
+.idea/
+*.sublime-workspace
+*.sublime-project

@@ -231,7 +231,17 @@ extern "C" void next()
 	}
 	else               /* 1#进程执行应用程序shell.exe,是普通进程  */
 	{
-		Machine::Instance().InitUserPageTable();      //这是直接写0x202,0x203页表，没相对虚实地址映射表一样okay！
+		PageTableEntry* userPageTable = (PageTableEntry*)us.u_MemoryDescriptor.GetUserPageTableArray();
+		if ( userPageTable != NULL )
+		{
+			for ( unsigned int i = 0; i < MemoryDescriptor::USER_SPACE_SIZE / PageManager::PAGE_SIZE; i++ )
+			{
+				userPageTable[i].m_Present = 1;
+				userPageTable[i].m_ReadWriter = 1;
+				userPageTable[i].m_UserSupervisor = 1;
+				userPageTable[i].m_PageBaseAddress = i;
+			}
+		}
 		FlushPageDirectory();
 
 		CRT::ClearScreen();

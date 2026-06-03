@@ -32,7 +32,7 @@
 #define SwtchUStruct(p) \
 	Machine::Instance().GetKernelPageTable().m_Entrys[Kernel::USER_PAGE_INDEX].m_PageBaseAddress \
 		= (p)->p_addr / PageManager::PAGE_SIZE; \
-	FlushPageDirectory();
+	__asm__ __volatile__(" movl %0, %%cr3" : : "r"((p)->p_pgTable ? ((p)->p_pgTable - Machine::KERNEL_SPACE_START_ADDRESS) : Machine::PAGE_DIRECTORY_BASE_ADDRESS));
 
 /* 
  * 恢复esp与ebp到u结构的宏，使用宏的理由同SaveU()

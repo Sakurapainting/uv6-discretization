@@ -2,6 +2,7 @@
 #include "Kernel.h"
 #include "PageManager.h"
 #include "Machine.h"
+#include "Assembly.h"
 #include "PageDirectory.h"
 #include "Video.h"
 
@@ -218,7 +219,7 @@ void MemoryDescriptor::MapToPageTable()
 	if(u.u_MemoryDescriptor.m_UserPageTableArray == NULL)
 		return;
 
-	PageTable* pUserPageTable = Machine::Instance().GetUserPageTableArray();
+	PageTable* pUserPageTable = u.u_MemoryDescriptor.m_UserPageTableArray;
 	unsigned int textPF = 0;
 	if ( u.u_procp->p_textp != NULL )
 	{
@@ -231,21 +232,26 @@ void MemoryDescriptor::MapToPageTable()
 	{
 		for ( unsigned int j = 0; j < PageTable::ENTRY_CNT_PER_PAGETABLE; j++ )
 		{
-			pUserPageTable[i].m_Entrys[j].m_Present = 0;   // Çå0±íÊ¾¸ÃÂß¼­Ò³²»´æÔÚ
+			unsigned char present = this->m_UserPageTableArray[i].m_Entrys[j].m_Present;
+			unsigned char readWriter = this->m_UserPageTableArray[i].m_Entrys[j].m_ReadWriter;
+			unsigned int pageBase = this->m_UserPageTableArray[i].m_Entrys[j].m_PageBaseAddress;
 
-			if ( 1 == this->m_UserPageTableArray[i].m_Entrys[j].m_Present )
+			pUserPageTable[i].m_Entrys[j].m_Present = 0;
+			pUserPageTable[i].m_Entrys[j].m_ReadWriter = 0;
+			pUserPageTable[i].m_Entrys[j].m_UserSupervisor = 1;
+			pUserPageTable[i].m_Entrys[j].m_PageBaseAddress = 0;
+
+			if ( 1 == present )
 			{
-				if ( 0 == this->m_UserPageTableArray[i].m_Entrys[j].m_ReadWriter )      // ROÂß¼­Ò³
+				pUserPageTable[i].m_Entrys[j].m_Present = 1;
+				pUserPageTable[i].m_Entrys[j].m_ReadWriter = readWriter;
+				if ( 0 == readWriter )
 				{
-					pUserPageTable[i].m_Entrys[j].m_Present = 1;
-					pUserPageTable[i].m_Entrys[j].m_ReadWriter = 0;
-					pUserPageTable[i].m_Entrys[j].m_PageBaseAddress = this->m_UserPageTableArray[i].m_Entrys[j].m_PageBaseAddress + textPF;
+					pUserPageTable[i].m_Entrys[j].m_PageBaseAddress = pageBase + textPF;
 				}
-				else if ( 1 == this->m_UserPageTableArray[i].m_Entrys[j].m_ReadWriter )    // RWÂß¼­Ò³
+				else
 				{
-					pUserPageTable[i].m_Entrys[j].m_Present = 1;
-					pUserPageTable[i].m_Entrys[j].m_ReadWriter = 1;
-					pUserPageTable[i].m_Entrys[j].m_PageBaseAddress = this->m_UserPageTableArray[i].m_Entrys[j].m_PageBaseAddress + pAddrPF;
+					pUserPageTable[i].m_Entrys[j].m_PageBaseAddress = pageBase + pAddrPF;
 				}
 			}
 		}
@@ -253,8 +259,8 @@ void MemoryDescriptor::MapToPageTable()
 
 	pUserPageTable[0].m_Entrys[0].m_Present = 1;
 	pUserPageTable[0].m_Entrys[0].m_ReadWriter = 1;
+	pUserPageTable[0].m_Entrys[0].m_UserSupervisor = 1;
 	pUserPageTable[0].m_Entrys[0].m_PageBaseAddress = 0;
 
 	FlushPageDirectory();
 }
-

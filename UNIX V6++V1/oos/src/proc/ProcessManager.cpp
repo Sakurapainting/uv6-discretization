@@ -133,6 +133,24 @@ int ProcessManager::NewProc()
 		{
 			Utility::CopySeg(srcAddress++, desAddress++);
 		}
+
+		PageTable* childPageTable = u.u_MemoryDescriptor.m_UserPageTableArray;
+		unsigned int parentPageFrame = current->p_addr >> 12;
+		unsigned int childPageFrame = child->p_addr >> 12;
+		unsigned int imagePageCount = (current->p_size + PageManager::PAGE_SIZE - 1) >> 12;
+		for ( unsigned int i = 0; i < MemoryDescriptor::USER_SPACE_PAGE_TABLE_CNT; i++ )
+		{
+			for ( unsigned int j = 0; j < PageTable::ENTRY_CNT_PER_PAGETABLE; j++ )
+			{
+				PageTableEntry& entry = childPageTable[i].m_Entrys[j];
+				if ( entry.m_Present == 1 && entry.m_ReadWriter == 1
+					&& entry.m_PageBaseAddress >= parentPageFrame
+					&& entry.m_PageBaseAddress < parentPageFrame + imagePageCount )
+				{
+					entry.m_PageBaseAddress = entry.m_PageBaseAddress - parentPageFrame + childPageFrame;
+				}
+			}
+		}
 	}
 	u.u_procp = current;
 	/* 
@@ -184,7 +202,6 @@ int ProcessManager::Swtch()
 	X86Assembly::STI();
 
 	User& newu = Kernel::Instance().GetUser();
-	newu.u_MemoryDescriptor.MapToPageTable();
 	
 	/*
 	 * If the new process paused because it was

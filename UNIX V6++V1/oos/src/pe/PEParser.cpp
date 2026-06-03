@@ -5,6 +5,7 @@
 #include "User.h"
 #include "Kernel.h"
 #include "Machine.h"
+#include "Assembly.h"
 
 PEParser::PEParser()
 {
@@ -27,7 +28,7 @@ unsigned int PEParser::Relocate(Inode* p_inode, int sharedText)
 	unsigned int i0 = 0;
 
 	/* 如果可以和其它进程共享正文段，无需文件中读入正文段 */
-	PageTable* pUserPageTable = Machine::Instance().GetUserPageTableArray();
+	PageTable* pUserPageTable = u.u_MemoryDescriptor.GetUserPageTableArray();
 	unsigned int textBegin = this->TextAddress >> 12 , textLength = this->TextSize >> 12;
 	PageTableEntry* pointer = (PageTableEntry *)pUserPageTable;
 

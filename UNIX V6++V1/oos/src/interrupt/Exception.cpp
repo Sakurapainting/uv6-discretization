@@ -205,7 +205,22 @@ IMPLEMENT_EXCEPTION_HANDLER(Bound, "Bound Range Exceeded!", User::SIGSEGV)
 
 //无效操作码(INT 6)
 IMPLEMENT_EXCEPTION_ENTRANCE(InvalidOpcodeEntrance, InvalidOpcode)
-IMPLEMENT_EXCEPTION_HANDLER(InvalidOpcode, "Invalid Opcode!", User::SIGILL)
+void Exception::InvalidOpcode(struct pt_regs* regs, struct pt_context* context)
+{
+	User& u = Kernel::Instance().GetUser();
+	Process* current = u.u_procp;
+	Diagnose::Write("Invalid Opcode! eip=%x cs=%x esp=%x pid=%d\n", context->eip, context->xcs, context->esp, current ? current->p_pid : -1);
+	if ( (context->xcs & USER_MODE) == USER_MODE )
+	{
+		current->PSignal(User::SIGILL);
+		if ( current->IsSig() )
+			current->PSig(context);
+	}
+	else
+	{
+		Utility::Panic("Invalid Opcode!");
+	}
+}
 
 
 //设备不可用(INT 7)

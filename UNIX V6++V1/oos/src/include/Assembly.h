@@ -10,8 +10,17 @@
 */
 
 /* 刷新页表，在每次对页表进行修改后需要调用，重新缓存页表 */
-#define FlushPageDirectory()	\
-	__asm__ __volatile__(" movl %0, %%cr3" : : "r"(0x200000) );
+static inline void FlushPageDirectory(unsigned long pgTable)
+{
+	__asm__ __volatile__(" movl %0, %%cr3" : : "r"(pgTable) );
+}
+
+static inline void FlushPageDirectory()
+{
+	unsigned long pgTable;
+	__asm__ __volatile__(" movl %%cr3, %0" : "=r"(pgTable) );
+	FlushPageDirectory(pgTable);
+}
 
 class X86Assembly
 {

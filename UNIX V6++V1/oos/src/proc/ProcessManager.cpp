@@ -41,6 +41,7 @@ void ProcessManager::SetupProcessZero()
 	//除ppda区与核心栈外，进程没有用户态部分
 	pProcZero->p_size = 0x1000;
 	pProcZero->p_addr = PROCESS_ZERO_PPDA_ADDRESS;
+	pProcZero->p_pgTable = Machine::PAGE_DIRECTORY_BASE_ADDRESS + Machine::KERNEL_SPACE_START_ADDRESS;
 	pProcZero->p_textp = NULL;
 
 	User& u = Kernel::Instance().GetUser();
@@ -50,6 +51,7 @@ void ProcessManager::SetupProcessZero()
 	u.u_MemoryDescriptor.m_DataStartAddress = 0;
 	u.u_MemoryDescriptor.m_DataSize = 0;
 	u.u_MemoryDescriptor.m_StackSize = 0;
+	u.u_MemoryDescriptor.m_PageDirectory = NULL;
 	u.u_MemoryDescriptor.m_UserPageTableArray = NULL;
 //	u.u_MemoryDescriptor.Initialize();
 }
@@ -86,8 +88,14 @@ int ProcessManager::NewProc()
 	SaveU(u.u_rsav);
 
 	/* 将父进程的用户态页表指针m_UserPageTableArray备份至pgTable */
+	PageDirectory* pageDirectory = u.u_MemoryDescriptor.m_PageDirectory;
 	PageTable* pgTable = u.u_MemoryDescriptor.m_UserPageTableArray;
 	u.u_MemoryDescriptor.Initialize();
+	if ( u.u_MemoryDescriptor.m_PageDirectory == NULL || u.u_MemoryDescriptor.m_UserPageTableArray == NULL )
+	{
+		Utility::Panic("No Page Table!");
+	}
+	child->p_pgTable = (unsigned long)u.u_MemoryDescriptor.m_PageDirectory;
 	/* 父进程的相对地址映照表拷贝给子进程，共两张页表的大小 */
 	if ( NULL != pgTable )
 	{
@@ -131,6 +139,7 @@ int ProcessManager::NewProc()
 	 * 拷贝进程图像期间，父进程的m_UserPageTableArray指向子进程的相对地址映照表；
 	 * 复制完成后才能恢复为先前备份的pgTable。
 	 */
+	u.u_MemoryDescriptor.m_PageDirectory = pageDirectory;
 	u.u_MemoryDescriptor.m_UserPageTableArray = pgTable;
 	//Diagnose::Write("End NewProc()\n");
 	return 0;

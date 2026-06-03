@@ -12,6 +12,7 @@ Process::Process()
 	this->p_stat = SNULL;
 	/* 避免0#进程在Wait()时，许多空闲process项以0#进程为父进程 */
 	this->p_ppid = -1;
+	this->p_pgTable = 0;
 }
 
 Process::~Process()
@@ -285,6 +286,7 @@ void Process::Clone(Process& proc)
 	proc.p_ttyp = this->p_ttyp;
 	proc.p_nice = this->p_nice;
 	proc.p_textp = this->p_textp;
+	proc.p_pgTable = 0;
 	
 	/* 建立父子关系 */
 	proc.p_pid = ProcessManager::NextUniquePid();

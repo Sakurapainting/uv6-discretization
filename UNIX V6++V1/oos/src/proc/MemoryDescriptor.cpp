@@ -5,14 +5,66 @@
 #include "PageDirectory.h"
 #include "Video.h"
 
+MemoryDescriptor::MemoryDescriptor()
+{
+	this->m_PageDirectory = NULL;
+	this->m_UserPageTableArray = NULL;
+	this->m_TextStartAddress = 0;
+	this->m_TextSize = 0;
+	this->m_DataStartAddress = 0;
+	this->m_DataSize = 0;
+	this->m_StackSize = 0;
+}
+
+MemoryDescriptor::~MemoryDescriptor()
+{
+}
 void MemoryDescriptor::Initialize()
 {
 	KernelPageManager& kernelPageManager = Kernel::Instance().GetKernelPageManager();
-	
-	/* m_UserPageTableArray需要把AllocMemory()返回的物理内存地址 + 0xC0000000 */
-	this->m_UserPageTableArray = (PageTable*)(kernelPageManager.AllocMemory(sizeof(PageTable) * USER_SPACE_PAGE_TABLE_CNT) + Machine::KERNEL_SPACE_START_ADDRESS);
-}
 
+	unsigned long pageDirectory = kernelPageManager.AllocMemory(sizeof(PageDirectory));
+	unsigned long userPageTables = kernelPageManager.AllocMemory(sizeof(PageTable) * USER_SPACE_PAGE_TABLE_CNT);
+	if ( pageDirectory == 0 || userPageTables == 0 )
+	{
+		if ( pageDirectory != 0 )
+		{
+			kernelPageManager.FreeMemory(sizeof(PageDirectory), pageDirectory);
+		}
+		if ( userPageTables != 0 )
+		{
+			kernelPageManager.FreeMemory(sizeof(PageTable) * USER_SPACE_PAGE_TABLE_CNT, userPageTables);
+		}
+		this->m_PageDirectory = NULL;
+		this->m_UserPageTableArray = NULL;
+		return;
+	}
+
+	this->m_PageDirectory = (PageDirectory*)(pageDirectory + Machine::KERNEL_SPACE_START_ADDRESS);
+	this->m_UserPageTableArray = (PageTable*)(userPageTables + Machine::KERNEL_SPACE_START_ADDRESS);
+
+	unsigned char* p = (unsigned char*)this->m_PageDirectory;
+	for ( unsigned int i = 0; i < sizeof(PageDirectory); i++ )
+	{
+		p[i] = 0;
+	}
+	p = (unsigned char*)this->m_UserPageTableArray;
+	for ( unsigned int i = 0; i < sizeof(PageTable) * USER_SPACE_PAGE_TABLE_CNT; i++ )
+	{
+		p[i] = 0;
+	}
+
+	for ( unsigned int i = 0; i < USER_SPACE_PAGE_TABLE_CNT; i++ )
+	{
+		this->m_PageDirectory->m_Entrys[i].m_UserSupervisor = 1;
+		this->m_PageDirectory->m_Entrys[i].m_Present = 1;
+		this->m_PageDirectory->m_Entrys[i].m_ReadWriter = 1;
+		this->m_PageDirectory->m_Entrys[i].m_PageTableBaseAddress = (userPageTables >> 12) + i;
+	}
+
+	unsigned int kernelPde = Machine::KERNEL_SPACE_START_ADDRESS / PageTable::SIZE_PER_PAGETABLE_MAP;
+	this->m_PageDirectory->m_Entrys[kernelPde] = Machine::Instance().GetPageDirectory().m_Entrys[kernelPde];
+}
 void MemoryDescriptor::Release()
 {
 	KernelPageManager& kernelPageManager = Kernel::Instance().GetKernelPageManager();
@@ -21,8 +73,12 @@ void MemoryDescriptor::Release()
 		kernelPageManager.FreeMemory(sizeof(PageTable) * USER_SPACE_PAGE_TABLE_CNT, (unsigned long)this->m_UserPageTableArray - Machine::KERNEL_SPACE_START_ADDRESS);
 		this->m_UserPageTableArray = NULL;
 	}
+	if ( this->m_PageDirectory )
+	{
+		kernelPageManager.FreeMemory(sizeof(PageDirectory), (unsigned long)this->m_PageDirectory - Machine::KERNEL_SPACE_START_ADDRESS);
+		this->m_PageDirectory = NULL;
+	}
 }
-
 unsigned int MemoryDescriptor::MapEntry(unsigned long virtualAddress, unsigned int size, unsigned long phyPageIdx, bool isReadWrite)
 {	
 	unsigned long address = virtualAddress - USER_SPACE_START_ADDRESS;

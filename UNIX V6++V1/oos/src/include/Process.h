@@ -79,6 +79,7 @@ public:
 
 	/* 进程内存中图像信息位置 */
 	unsigned long	p_addr; /* TBD user结构即ppda区在物理内存中的地址，用于替代页表中的某一项 */
+	unsigned long	p_pgTable; /* 进程页目录在核心虚地址空间中的起始地址，后续用于切换CR3 */
 	unsigned int	p_size; /* 除共享正文段的长度，以字节单位 */
 	Text*	p_textp;		/* 指向该进程所运行的代码段的描述符 */
 

@@ -394,6 +394,7 @@ void ProcessManager::Wait()
 					process[i].p_pid = 0;
 					process[i].p_ppid = -1;
 					process[i].p_sig = 0;
+					process[i].p_pgTable = 0;
 					process[i].p_flag = 0;
 
 					/* 读入swapper中子进程u结构副本 */
